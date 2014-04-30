@@ -88,6 +88,17 @@ namespace NodeDBus {
 		case NODE_DBUS_BUS_SESSION:
 			connection = dbus_bus_get(DBUS_BUS_SESSION, &error);
 			break;
+		case NODE_DBUS_BUS_OPEN:
+		    //connection = dbus_connection_open("tcp:host=192.168.123.9,port=55884", &error);
+		    if (!args[1]->IsString())
+		        return ThrowException(Exception::Error(String::New("Second parameter is String")));
+
+		    char *address = strdup(*String::Utf8Value(args[1]->ToString()));
+		    connection = dbus_connection_open(address, &error);
+		    if (!dbus_error_is_set(&error)) {
+		        dbus_bus_register(connection, &error);
+		    }
+		    break;
 		}
 
 		if (connection == NULL)

@@ -22,7 +22,8 @@ namespace NodeDBus {
 
 	typedef enum {
 		NODE_DBUS_BUS_SYSTEM,
-		NODE_DBUS_BUS_SESSION
+		NODE_DBUS_BUS_SESSION,
+		NODE_DBUS_BUS_OPEN
 	} BusType;
 
 	typedef struct {
