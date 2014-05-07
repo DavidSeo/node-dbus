@@ -63,40 +63,82 @@ namespace Decoder {
 
 		case DBUS_TYPE_STRUCT:
 		{
+			bool is_dict = false;
 			char *sig = NULL;
+			DBusMessageIter internal_iter;
 
-			// Create a object
-			Handle<Object> result = Object::New();
+			// Initializing signature
+			dbus_signature_iter_init(&siter, signature);
+			dbus_message_iter_recurse(iter, &internal_iter);
 
-			do {
-				// Getting sub iterator
-				DBusMessageIter dict_entry_iter;
-				dbus_message_iter_recurse(iter, &dict_entry_iter);
+			if (dbus_message_iter_get_arg_type(&internal_iter) == DBUS_TYPE_DICT_ENTRY) {
+				is_dict = true;
+			}
 
-				// Getting key
-				sig = dbus_message_iter_get_signature(&dict_entry_iter);
-				Handle<Value> key = DecodeMessageIter(&dict_entry_iter, sig);
-				dbus_free(sig);
-				if (key->IsUndefined())
-					continue;
+			// It's dictionary
+			if (is_dict) {
 
-				// Try to get next element
-				Handle<Value> value;
-				if (dbus_message_iter_next(&dict_entry_iter)) {
-					// Getting value
-					sig = dbus_message_iter_get_signature(&dict_entry_iter);
-					value = DecodeMessageIter(&dict_entry_iter, sig);
-					dbus_free(sig);
-				} else {
-					value = Undefined();
-				}
+			    char *sig = NULL;
 
-				// Append a property
-				result->Set(key, value); 
+                // Create a object
+                Handle<Object> result = Object::New();
 
-			} while(dbus_message_iter_next(iter));
+                do {
+                    // Getting sub iterator
+                    DBusMessageIter dict_entry_iter;
+                    dbus_message_iter_recurse(iter, &dict_entry_iter);
 
-			return scope.Close(result);
+                    // Getting key
+                    sig = dbus_message_iter_get_signature(&dict_entry_iter);
+                    Handle<Value> key = DecodeMessageIter(&dict_entry_iter, sig);
+                    dbus_free(sig);
+                    if (key->IsUndefined())
+                        continue;
+
+                    // Try to get next element
+                    Handle<Value> value;
+                    if (dbus_message_iter_next(&dict_entry_iter)) {
+                        // Getting value
+                        sig = dbus_message_iter_get_signature(&dict_entry_iter);
+                        value = DecodeMessageIter(&dict_entry_iter, sig);
+                        dbus_free(sig);
+                    } else {
+                        value = Undefined();
+                    }
+
+                    // Append a property
+                    result->Set(key, value);
+
+                } while(dbus_message_iter_next(iter));
+
+                return scope.Close(result);
+			}
+            else
+            {
+                // Create an array
+                unsigned int count = 0;
+                Handle<Array> result = Array::New();
+                if (dbus_message_iter_get_arg_type(&internal_iter) == DBUS_TYPE_INVALID)
+                    return scope.Close(result);
+
+                do {
+
+                    // Getting element
+                    sig = dbus_message_iter_get_signature(&internal_iter);
+                    Handle<Value> value = DecodeMessageIter(&internal_iter, sig);
+                    dbus_free(sig);
+                    if (value->IsUndefined())
+                        continue;
+
+                    // Append item
+                    result->Set(count, value);
+
+                    count++;
+                } while(dbus_message_iter_next(&internal_iter));
+
+                return scope.Close(result);
+            }
+            break;
 		}
 
 		case DBUS_TYPE_ARRAY:
